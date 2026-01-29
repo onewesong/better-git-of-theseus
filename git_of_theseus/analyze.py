@@ -22,12 +22,20 @@ import multiprocessing
 import os
 import signal
 import warnings
+import threading
 from pathlib import Path
 
 import git
 import pygments.lexers
 from tqdm import tqdm
 from wcmatch import fnmatch
+
+def safe_signal(signum, handler):
+    try:
+        signal.signal(signum, handler)
+    except ValueError:
+        # Cannot set signal handler in non-main thread
+        pass
 
 # Some filetypes in Pygments are not necessarily computer code, but configuration/documentation. Let's not include those.
 IGNORE_PYGMENTS_FILETYPES = [
@@ -118,7 +126,7 @@ class BlameProc(multiprocessing.Process):
         return h
 
     def run(self):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        safe_signal(signal.SIGINT, signal.SIG_IGN)
         try:
             while self.run_flag.wait():
                 entry, commit = self.q.get()
@@ -263,7 +271,7 @@ def analyze(
         "dynamic_ncols": True,
     }
 
-    if not os.path.exists(outdir):
+    if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
 
     # Check if specified branch exists
@@ -442,7 +450,7 @@ def analyze(
         handler(None, None)
 
     if not quiet:
-        signal.signal(signal.SIGINT, handler)
+        safe_signal(signal.SIGINT, handler)
 
     desc = "{:<55s}".format(
         "Analyzing commit history with {:d} processes".format(procs)
@@ -510,38 +518,41 @@ def analyze(
             for key_tuple in curve_key_tuples:
                 curves.setdefault(key_tuple, []).append(cur_y.get(key_tuple, 0))
 
-    signal.signal(signal.SIGINT, signal.default_int_handler)
+    safe_signal(signal.SIGINT, signal.default_int_handler)
 
-    def dump_json(output_fn, key_type, label_fmt=lambda x: x):
+    results = {}
+
+    def get_data(key_type, label_fmt=lambda x: x):
         key_items = sorted(k for t, k in curve_key_tuples if t == key_type)
-        fn = os.path.join(outdir, output_fn)
+        return {
+            "y": [curves[(key_type, key_item)] for key_item in key_items],
+            "ts": [t.isoformat() for t in ts],
+            "labels": [label_fmt(key_item) for key_item in key_items],
+        }
+
+    results["cohorts"] = get_data("cohort", lambda c: "Code added in %s" % c)
+    results["exts"] = get_data("ext")
+    results["authors"] = get_data("author")
+    results["dirs"] = get_data("dir")
+    results["domains"] = get_data("domain")
+    results["survival"] = commit_history
+
+    if outdir:
+        for key in ["cohorts", "exts", "authors", "dirs", "domains"]:
+            fn = os.path.join(outdir, f"{key}.json")
+            if not quiet:
+                print("Writing data to %s" % fn)
+            with open(fn, "w") as f:
+                json.dump(results[key], f)
+        
+        # Survival data
+        fn = os.path.join(outdir, "survival.json")
         if not quiet:
-            print("Writing %s data to %s" % (key_type, fn))
-        f = open(fn, "w")
-        json.dump(
-            {
-                "y": [curves[(key_type, key_item)] for key_item in key_items],
-                "ts": [t.isoformat() for t in ts],
-                "labels": [label_fmt(key_item) for key_item in key_items],
-            },
-            f,
-        )
-        f.close()
-
-    # Dump accumulated stuff
-    dump_json("cohorts.json", "cohort", lambda c: "Code added in %s" % c)
-    dump_json("exts.json", "ext")
-    dump_json("authors.json", "author")
-    dump_json("dirs.json", "dir")
-    dump_json("domains.json", "domain")
-
-    # Dump survival data
-    fn = os.path.join(outdir, "survival.json")
-    f = open(fn, "w")
-    if not quiet:
-        print("Writing survival data to %s" % fn)
-    json.dump(commit_history, f)
-    f.close()
+            print("Writing survival data to %s" % fn)
+        with open(fn, "w") as f:
+            json.dump(commit_history, f)
+    
+    return results
 
 
 @functools.lru_cache(maxsize=None)

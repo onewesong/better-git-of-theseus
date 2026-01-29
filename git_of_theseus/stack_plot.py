@@ -25,9 +25,12 @@ from .utils import generate_n_colors
 
 
 def stack_plot(
-    input_fn, display=False, outfile="stack_plot.png", max_n=20, normalize=False
+    input_fn_or_data, display=False, outfile=None, max_n=20, normalize=False, title=None
 ):
-    data = json.load(open(input_fn))  # TODO do we support multiple arguments here?
+    if isinstance(input_fn_or_data, str):
+        data = json.load(open(input_fn_or_data)) 
+    else:
+        data = input_fn_or_data
     y = numpy.array(data["y"])
     if y.shape[0] > max_n:
         js = sorted(range(len(data["labels"])), key=lambda j: max(y[j]), reverse=True)
@@ -39,7 +42,7 @@ def stack_plot(
         labels = data["labels"]
     if normalize:
         y = 100.0 * numpy.array(y) / numpy.sum(y, axis=0)
-    pyplot.figure(figsize=(16, 12), dpi=120)
+    fig = pyplot.figure(figsize=(16, 12), dpi=120)
     pyplot.style.use("ggplot")
     ts = [dateutil.parser.parse(t) for t in data["ts"]]
     colors = generate_n_colors(len(labels))
@@ -50,11 +53,21 @@ def stack_plot(
         pyplot.ylim([0, 100])
     else:
         pyplot.ylabel("Lines of code")
-    print("Writing output to %s" % outfile)
-    pyplot.savefig(outfile)
+
+    if title:
+        pyplot.text(0.5, 0.5, title, transform=pyplot.gca().transAxes, 
+                    fontsize=40, color='gray', alpha=0.3,
+                    ha='center', va='center', rotation=30)
+    
+    if outfile:
+        print("Writing output to %s" % outfile)
+        pyplot.savefig(outfile)
+    
     pyplot.tight_layout()
     if display:
         pyplot.show()
+    
+    return fig
 
 
 def stack_plot_cmdline():

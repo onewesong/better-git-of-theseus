@@ -30,16 +30,21 @@ from matplotlib import pyplot
 
 
 def survival_plot(
-    input_fns, exp_fit=False, display=False, outfile="survival_plot", years=5
+    input_fns, exp_fit=False, display=False, outfile=None, years=5, title=None
 ):
     all_deltas = []
     YEAR = 365.25 * 24 * 60 * 60
-    pyplot.figure(figsize=(13, 8))
+    fig = pyplot.figure(figsize=(13, 8))
     pyplot.style.use("ggplot")
 
-    for fn in input_fns:
-        print("reading %s" % fn)
-        commit_history = json.load(open(fn))
+    for fn_or_data in input_fns:
+        if isinstance(fn_or_data, str):
+            print("reading %s" % fn_or_data)
+            commit_history = json.load(open(fn_or_data))
+            fn = fn_or_data
+        else:
+            commit_history = fn_or_data
+            fn = "data"
 
         print("counting %d commits" % len(commit_history))
         deltas = collections.defaultdict(lambda: numpy.zeros(2))
@@ -115,9 +120,20 @@ def survival_plot(
     pyplot.title("% of lines still present in code after n years")
     pyplot.legend()
     pyplot.tight_layout()
-    pyplot.savefig(outfile)
+
+    if title:
+        pyplot.text(0.5, 0.5, title, transform=pyplot.gca().transAxes, 
+                    fontsize=40, color='gray', alpha=0.3,
+                    ha='center', va='center', rotation=30)
+
+    if outfile:
+        print("Writing output to %s" % outfile)
+        pyplot.savefig(outfile)
+    
     if display:
         pyplot.show()
+    
+    return fig
 
 
 def survival_plot_cmdline():
