@@ -18,7 +18,7 @@
 
 ## Key Enhancements
 
--   🚀 **One-Click Visualization**: New `git-of-theseus-visualize` command automatically scans your project and launches a Web UI.
+-   🚀 **One-Click Visualization**: New `better-git-of-theseus` command automatically scans your project and launches a Web UI.
 -   📊 **Interactive Charts**: Replaced static Matplotlib plots with Plotly. Support for zooming, panning, and detailed data hovers.
 -   🧠 **In-Memory Processing**: Data flows directly in memory. No more mandatory intermediate `.json` files cluttering your repo.
 -   ⚡ **Smart Caching**: Leverages Streamlit's caching to make repeat analysis of large repos nearly instantaneous.
@@ -37,21 +37,12 @@ pip install better-git-of-theseus
 Run the following in any Git repository:
 
 ```bash
-git-of-theseus-visualize
+better-git-of-theseus
 ```
 
 It will automatically open your browser to the interactive dashboard.
 
-## Advanced Usage
-
-### Traditional CLI Support
-
-Original CLI commands are preserved and enhanced with Plotly support:
-
-1.  **Analyze**: `git-of-theseus-analyze <path to repo>` (supports `--outdir` for saving data)
-2.  **Stack Plot**: `git-of-theseus-stack-plot cohorts.json`
-3.  **Line Plot**: `git-of-theseus-line-plot authors.json --normalize`
-4.  **Survival Plot**: `git-of-theseus-survival-plot survival.json`
+## Feature Highlights
 
 ### Cohort Formatting
 
@@ -60,11 +51,9 @@ Customize how commits are grouped by year, month, or week (based on Python strft
 -   `%Y-%m`: Group by **Month**
 -   `%Y-W%W`: Group by **Week**
 
-### Comparative Survival Analysis
+### Real-time Parameters
 
-To compare code survival across multiple projects:
-1. Analyze and save: `git-of-theseus-analyze repo1 --outdir out1`
-2. Run comparison: `git-of-theseus-survival-plot out1/survival.json out2/survival.json --exp-fit`
+Adjust parameters like "Max Series", "Normalization", and "Exponential Fit" directly in the Web UI without re-running any commands.
 
 ## FAQ
 

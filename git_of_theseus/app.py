@@ -93,7 +93,7 @@ if st.session_state.analysis_results:
             data = results.get(data_key)
             if data:
                 fig = plotly_stack_plot(data, normalize=normalize, max_n=max_n, title=project_name)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.warning(f"Data for {data_source_label} not found.")
 
@@ -110,7 +110,7 @@ if st.session_state.analysis_results:
             data_line = results.get(data_key_line)
             if data_line:
                 fig = plotly_line_plot(data_line, normalize=normalize_line, max_n=max_n_line, title=project_name)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.warning(f"Data for {data_source_label_line} not found.")
 
@@ -125,7 +125,7 @@ if st.session_state.analysis_results:
             survival_data = results.get("survival")
             if survival_data:
                 fig = plotly_survival_plot(survival_data, exp_fit=exp_fit, years=years, title=project_name)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.warning("Survival data not found.")
 
