@@ -241,3 +241,36 @@ def plotly_survival_plot(commit_history, exp_fit=False, years=5, title=None):
 
 
     return fig
+
+def plotly_bar_plot(data, max_n=20, title=None):
+    ts, y, labels = _process_stack_line_data(data, max_n, normalize=False)
+    
+    # Get latest data point (current state)
+    latest_values = [row[-1] for row in y]
+    
+    # Sort by value for better bar chart presentation
+    # (Though _process_stack_line_data already does some sorting, we want descending order)
+    indices = sorted(range(len(labels)), key=lambda i: latest_values[i], reverse=True)
+    
+    sorted_labels = [labels[i] for i in indices]
+    sorted_values = [latest_values[i] for i in indices]
+    
+    # Generate colors
+    colors = px.colors.qualitative.Plotly
+    if len(sorted_labels) > len(colors):
+        colors = px.colors.qualitative.Dark24
+
+    fig = go.Figure(go.Bar(
+        x=sorted_labels,
+        y=sorted_values,
+        marker_color=[colors[i % len(colors)] for i in range(len(sorted_labels))]
+    ))
+
+    fig.update_layout(
+        title=dict(text=f"{title} (Current Distribution)" if title else "Current Distribution", x=0.5),
+        yaxis=dict(title="Lines of Code"),
+        xaxis=dict(title=""),
+        margin=dict(l=20, r=20, t=50, b=100),
+    )
+    
+    return fig

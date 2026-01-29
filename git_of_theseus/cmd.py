@@ -7,9 +7,8 @@ def main():
     cmd_dir = os.path.dirname(os.path.abspath(__file__))
     app_path = os.path.join(cmd_dir, "app.py")
     
-    # The first argument is the repo path, default to current directory
-    repo_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
-    repo_path = os.path.abspath(repo_path)
+    # Always use the current working directory
+    repo_path = os.path.abspath(os.getcwd())
     
     # Run streamlit
     # We pass the repo_path as an argument to the streamlit script
