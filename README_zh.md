@@ -1,7 +1,16 @@
+<div align="center">
+
 # Better Git of Theseus
 
 [![pypi badge](https://img.shields.io/pypi/v/better-git-of-theseus.svg?style=flat)](https://pypi.python.org/pypi/better-git-of-theseus)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/better-git-of-theseus)](https://pypi.org/project/better-git-of-theseus/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/better-git-of-theseus)](https://pypi.org/project/better-git-of-theseus/)
+[![GitHub License](https://img.shields.io/github/license/onewesong/better-git-of-theseus)](https://github.com/onewesong/better-git-of-theseus/blob/master/LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/onewesong/better-git-of-theseus)
+
 [English Version](README.md)
+
+</div>
 
 **Better Git of Theseus** 是对原版 [git-of-theseus](https://github.com/erikbern/git-of-theseus) 的现代重构版。它通过 **Streamlit** 提供了一个全交互式的 Web Dashboard，并结合 **Plotly** 生成可缩放、可悬停查看数据的现代化图表，同时显著提升了易用性。
 

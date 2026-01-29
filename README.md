@@ -1,7 +1,16 @@
+<div align="center">
+
 # Better Git of Theseus
 
 [![pypi badge](https://img.shields.io/pypi/v/better-git-of-theseus.svg?style=flat)](https://pypi.python.org/pypi/better-git-of-theseus)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/better-git-of-theseus)](https://pypi.org/project/better-git-of-theseus/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/better-git-of-theseus)](https://pypi.org/project/better-git-of-theseus/)
+[![GitHub License](https://img.shields.io/github/license/onewesong/better-git-of-theseus)](https://github.com/onewesong/better-git-of-theseus/blob/master/LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/onewesong/better-git-of-theseus)
+
 [中文版](README_zh.md)
+
+</div>
 
 **Better Git of Theseus** is a modern refactor of the original [git-of-theseus](https://github.com/erikbern/git-of-theseus). It provides a fully interactive Web Dashboard powered by **Streamlit** and **Plotly**, making it easier than ever to visualize how your code evolves over time.
 
