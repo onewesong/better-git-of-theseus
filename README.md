@@ -14,7 +14,8 @@
 
 **Better Git of Theseus** is a modern refactor of the original [git-of-theseus](https://github.com/erikbern/git-of-theseus). It provides a fully interactive Web Dashboard powered by **Streamlit** and **Plotly**, making it easier than ever to visualize how your code evolves over time.
 
-![Git of Theseus Dashboard](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-git.png) *(Note: Charts are now fully interactive!)*
+![Git of Theseus Cohorts](pics/plot-cohorts.png)
+![Git of Theseus Authors](pics/plot-authors.png)
 
 ## Key Enhancements
 

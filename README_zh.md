@@ -14,7 +14,8 @@
 
 **Better Git of Theseus** 是对原版 [git-of-theseus](https://github.com/erikbern/git-of-theseus) 的现代重构版。它通过 **Streamlit** 提供了一个全交互式的 Web Dashboard，并结合 **Plotly** 生成可缩放、可悬停查看数据的现代化图表，同时显著提升了易用性。
 
-![Git of Theseus Dashboard](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-git.png) *(注：图表现在是交互式的！)*
+![Git of Theseus Cohorts](pics/plot-cohorts.png)
+![Git of Theseus Authors](pics/plot-authors.png)
 
 ## 核心改进
 
