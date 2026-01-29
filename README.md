@@ -1,95 +1,71 @@
-[![pypi badge](https://img.shields.io/pypi/v/git-of-theseus.svg?style=flat)](https://pypi.python.org/pypi/git-of-theseus)
+# Better Git of Theseus
 
-Some scripts to analyze Git repos. Produces cool looking graphs like this (running it on [git](https://github.com/git/git) itself):
+[![pypi badge](https://img.shields.io/pypi/v/better-git-of-theseus.svg?style=flat)](https://pypi.python.org/pypi/better-git-of-theseus)
+[中文版](README_zh.md)
 
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-git.png)
+**Better Git of Theseus** is a modern refactor of the original [git-of-theseus](https://github.com/erikbern/git-of-theseus). It provides a fully interactive Web Dashboard powered by **Streamlit** and **Plotly**, making it easier than ever to visualize how your code evolves over time.
 
-Installing
-----------
+![Git of Theseus Dashboard](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-git.png) *(Note: Charts are now fully interactive!)*
 
-Run `pip install git-of-theseus`
+## Key Enhancements
 
-Running
--------
+-   🚀 **One-Click Visualization**: New `git-of-theseus-visualize` command automatically scans your project and launches a Web UI.
+-   📊 **Interactive Charts**: Replaced static Matplotlib plots with Plotly. Support for zooming, panning, and detailed data hovers.
+-   🧠 **In-Memory Processing**: Data flows directly in memory. No more mandatory intermediate `.json` files cluttering your repo.
+-   ⚡ **Smart Caching**: Leverages Streamlit's caching to make repeat analysis of large repos nearly instantaneous.
+-   🎨 **Modern UI**: Adjust parameters (Cohort format, ignore rules, normalization, etc.) in real-time via the sidebar.
 
-First, you need to run `git-of-theseus-analyze <path to repo>` (see `git-of-theseus-analyze --help` for a bunch of config). This will analyze a repository and might take quite some time.
+## Installation
 
-After that, you can generate plots! Some examples:
+Install via pip:
 
-1. Run `git-of-theseus-stack-plot cohorts.json` will create a stack plot showing the total amount of code broken down into cohorts (what year the code was added)
-1. Run `git-of-theseus-line-plot authors.json --normalize` will show a plot of the % of code contributed by the top 20 authors
-1. Run `git-of-theseus-survival-plot survival.json`
-
-You can run `--help` to see various options.
-
-If you want to plot multiple repositories, have to run `git-of-theseus-analyze` separately for each project and store the data in separate directories using the `--outdir` flag. Then you can run `git-of-theseus-survival-plot <foo/survival.json> <bar/survival.json>` (optionally with the `--exp-fit` flag to fit an exponential decay)
-
-Help
-----
-
-`AttributeError: Unknown property labels` – upgrade matplotlib if you are seeing this. `pip install matplotlib --upgrade`
-  
-Some pics
----------
-
-Survival of a line of code in a set of interesting repos:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-projects-survival.png)
-
-This curve is produced by the `git-of-theseus-survival-plot` script and shows the *percentage of lines in a commit that are still present after x years*. It aggregates it over all commits, no matter what point in time they were made. So for *x=0* it includes all commits, whereas for *x>0* not all commits are counted (because we would have to look into the future for some of them). The survival curves are estimated using [Kaplan-Meier](https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator).
-
-You can also add an exponential fit:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-projects-survival-exp-fit.png)
-
-Linux – stack plot:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-linux.png)
-
-This curve is produced by the `git-of-theseus-stack-plot` script and shows the total number of lines in a repo broken down into cohorts by the year the code was added.
-
-Node – stack plot:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-node.png)
-
-Rails – stack plot:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-rails.png)
-
-Tensorflow – stack plot:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-tensorflow.png)
-
-Rust – stack plot:
-
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-rust.png)
-
-Plotting other stuff
---------------------
-
-`git-of-theseus-analyze` will write `exts.json`, `cohorts.json` and `authors.json`. You can run `git-of-theseus-stack-plot authors.json` to plot author statistics as well, or `git-of-theseus-stack-plot exts.json` to plot file extension statistics. For author statistics, you might want to create a [.mailmap](https://git-scm.com/docs/gitmailmap) file in the root directory of the repository to deduplicate authors. If you need to create a .mailmap file the following command can list the distinct author-email combinations in a repository:
-
-Mac / Linux
-
-```shell
-git log --pretty=format:"%an %ae" | sort | uniq
+```bash
+pip install better-git-of-theseus
 ```
 
-Windows Powershell
+## Quick Start
 
-```powershell
-git log --pretty=format:"%an %ae" | Sort-Object | Select-Object -Unique
+Run the following in any Git repository:
+
+```bash
+git-of-theseus-visualize
 ```
 
-For instance, here's the author statistics for [Kubernetes](https://github.com/kubernetes/kubernetes):
+It will automatically open your browser to the interactive dashboard.
 
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-kubernetes-authors.png)
+## Advanced Usage
 
-You can also normalize it to 100%. Here's author statistics for Git:
+### Traditional CLI Support
 
-![git](https://raw.githubusercontent.com/erikbern/git-of-theseus/master/pics/git-git-authors-normalized.png)
+Original CLI commands are preserved and enhanced with Plotly support:
 
-Other stuff
------------
+1.  **Analyze**: `git-of-theseus-analyze <path to repo>` (supports `--outdir` for saving data)
+2.  **Stack Plot**: `git-of-theseus-stack-plot cohorts.json`
+3.  **Line Plot**: `git-of-theseus-line-plot authors.json --normalize`
+4.  **Survival Plot**: `git-of-theseus-survival-plot survival.json`
 
-[Markovtsev Vadim](https://twitter.com/tmarkhor) implemented a very similar analysis that claims to be 20%-6x faster than Git of Theseus. It's named [Hercules](https://github.com/src-d/hercules) and there's a great [blog post](https://web.archive.org/web/20180918135417/https://blog.sourced.tech/post/hercules.v4/) about all the complexity going into the analysis of Git history.
+### Cohort Formatting
+
+Customize how commits are grouped by year, month, or week (based on Python strftime):
+-   `%Y`: Group by **Year** (Default)
+-   `%Y-%m`: Group by **Month**
+-   `%Y-W%W`: Group by **Week**
+
+### Comparative Survival Analysis
+
+To compare code survival across multiple projects:
+1. Analyze and save: `git-of-theseus-analyze repo1 --outdir out1`
+2. Run comparison: `git-of-theseus-survival-plot out1/survival.json out2/survival.json --exp-fit`
+
+## FAQ
+
+-   **Duplicate Authors?** Configure a [.mailmap](https://git-scm.com/docs/gitmailmap) file in your repo root to merge identities.
+-   **Performance?** First-time analysis of very large repos (like the Linux Kernel) may take time, but subsequent views are extremely fast due to caching.
+
+## Credits
+
+Special thanks to [Erik Bernhardsson](https://github.com/erikbern) for creating the original `git-of-theseus`.
+
+## License
+
+MIT

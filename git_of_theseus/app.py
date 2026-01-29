@@ -2,21 +2,39 @@ import streamlit as st
 import os
 import tempfile
 import shutil
-from git_of_theseus.analyze import analyze
-from git_of_theseus.plotly_plots import plotly_stack_plot, plotly_line_plot, plotly_survival_plot
+try:
+    from git_of_theseus.analyze import analyze
+    from git_of_theseus.plotly_plots import plotly_stack_plot, plotly_line_plot, plotly_survival_plot
+except ImportError:
+    from analyze import analyze
+    from plotly_plots import plotly_stack_plot, plotly_line_plot, plotly_survival_plot
 
 st.set_page_config(page_title="Git of Theseus Dash", layout="wide")
 
 st.title("📊 Git of Theseus - Repository Analysis")
 
+import sys
+
 # Sidebar Configuration
 st.sidebar.header("Configuration")
 
-repo_path = st.sidebar.text_input("Git Repository Path", value=".")
+default_repo = "."
+if len(sys.argv) > 1:
+    default_repo = sys.argv[1]
+
+repo_path = st.sidebar.text_input("Git Repository Path", value=default_repo)
 branch = st.sidebar.text_input("Branch", value="master")
 
 with st.sidebar.expander("Analysis Parameters"):
-    cohortfm = st.text_input("Cohort Format", value="%Y")
+    cohortfm = st.text_input(
+        "Cohort Format", 
+        value="%Y",
+        help="Python strftime format string. Common options:\n\n"
+             "- `%Y`: Year (e.g., 2023)\n"
+             "- `%Y-%m`: Month (e.g., 2023-01)\n"
+             "- `%Y-W%W`: Week (e.g., 2023-W01)\n"
+             "- `%Y-%m-%d`: Day"
+    )
     interval = st.number_input("Interval (seconds)", value=7 * 24 * 60 * 60)
     procs = st.number_input("Processes", value=2, min_value=1)
     ignore = st.text_area("Ignore (comma separated)").split(",")
@@ -39,7 +57,7 @@ def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
-if st.sidebar.button("🚀 Run Analysis"):
+if st.sidebar.button("🚀 Run Analysis") or (len(sys.argv) > 1 and st.session_state.analysis_results is None):
     with st.spinner("Analyzing repository... this may take a while."):
         try:
             st.session_state.analysis_results = run_analysis(

@@ -88,20 +88,6 @@ def plotly_stack_plot(data, max_n=20, normalize=False, title=None):
         margin=dict(l=20, r=20, t=50, b=20),
     )
     
-    # Add watermark-like title in background if desired, or just use layout title
-    # The user asked for "center title" previously. 
-    # In Plotly, layout.title is usually at top.
-    # We can add an annotation for the centered watermark effect.
-    if title:
-        fig.add_annotation(
-            text=title,
-            xref="paper", yref="paper",
-            x=0.5, y=0.5,
-            showarrow=False,
-            font=dict(size=50, color="gray"),
-            opacity=0.3,
-            textangle=-30
-        )
 
     return fig
 
@@ -130,16 +116,6 @@ def plotly_line_plot(data, max_n=20, normalize=False, title=None):
         margin=dict(l=20, r=20, t=50, b=20),
     )
 
-    if title:
-        fig.add_annotation(
-            text=title,
-            xref="paper", yref="paper",
-            x=0.5, y=0.5,
-            showarrow=False,
-            font=dict(size=50, color="gray"),
-            opacity=0.3,
-            textangle=-30
-        )
         
     return fig
 
@@ -263,15 +239,5 @@ def plotly_survival_plot(commit_history, exp_fit=False, years=5, title=None):
         margin=dict(l=20, r=20, t=50, b=20),
     )
 
-    if title:
-        fig.add_annotation(
-            text=title,
-            xref="paper", yref="paper",
-            x=0.5, y=0.5,
-            showarrow=False,
-            font=dict(size=50, color="gray"),
-            opacity=0.3,
-            textangle=-30
-        )
 
     return fig
