@@ -7,12 +7,17 @@ import math
 import os
 from .utils import generate_n_colors
 
+# Harmonious, professional color palette (Modern & Muted)
+# Inspired by Tableau 20 and modern UI systems
+PREMIUM_PALETTE = [
+    "#4E79A7", "#A0CBE8", "#F28E2B", "#FFBE7D", "#59A14F", 
+    "#8CD17D", "#B6992D", "#F1CE63", "#499894", "#86BCB6",
+    "#E15759", "#FF9D9A", "#79706E", "#BAB0AC", "#D37295", 
+    "#FABFD2", "#B07AA1", "#D4A1D2", "#9D7660", "#D7B5A6"
+]
+
 def _process_stack_line_data(data, max_n=20, normalize=False):
-    # Handle dict or file path
-    # If it's a file path, load it? But app.py passes dict now. 
-    # Let's assume dict for now as per app.py refactor.
     if not isinstance(data, dict):
-         # Fallback if needed, though app.py sends dict
         import json
         data = json.load(open(data))
 
@@ -20,34 +25,16 @@ def _process_stack_line_data(data, max_n=20, normalize=False):
     labels = data["labels"]
     ts = [dateutil.parser.parse(t) for t in data["ts"]]
 
-    # Sort and filter top N
     if y.shape[0] > max_n:
-        # Sort by max value in the series
         js = sorted(range(len(labels)), key=lambda j: max(y[j]), reverse=True)
-        
-        # Calculate other sum
         other_indices = js[max_n:]
         if other_indices:
             other_sum = np.sum([y[j] for j in other_indices], axis=0)
-            
-            # Top N indices
             top_js = sorted(js[:max_n], key=lambda j: labels[j])
-            
             y = np.array([y[j] for j in top_js] + [other_sum])
             labels = [labels[j] for j in top_js] + ["other"]
-        else:
-            # Should hopefully not happen if shape[0] > max_n
-             pass 
-    else:
-        # Sort alphabetically for consistency
-        js = range(len(labels))
-        # strictly speaking existing code didn't sort if <= max_n?
-        # "labels = data['labels']" in existing code.
-        pass
-
-    y_sums = np.sum(y, axis=0)
     
-    # Avoid division by zero
+    y_sums = np.sum(y, axis=0)
     y_sums[y_sums == 0] = 1.0
 
     if normalize:
@@ -57,43 +44,39 @@ def _process_stack_line_data(data, max_n=20, normalize=False):
 
 def plotly_stack_plot(data, max_n=20, normalize=False, title=None):
     ts, y, labels = _process_stack_line_data(data, max_n, normalize)
-    
     fig = go.Figure()
     
-    # Use a nice color palette
-    colors = px.colors.qualitative.Plotly
-    if len(labels) > len(colors):
-        colors = px.colors.qualitative.Dark24 # More colors if needed
-
     for i, label in enumerate(labels):
-        color = colors[i % len(colors)]
+        color = PREMIUM_PALETTE[i % len(PREMIUM_PALETTE)]
         fig.add_trace(go.Scatter(
             x=ts, 
             y=y[i], 
             mode='lines',
             name=label,
-            stackgroup='one', # This enables stacking
-            line=dict(width=0.5, color=color),
-            fillcolor=color # Optional: specific fill color
+            stackgroup='one', 
+            line=dict(width=0.5, color='rgba(255,255,255,0.3)'), 
+            fillcolor=color,
+            hoverinfo='x+y+name'
         ))
 
     fig.update_layout(
-        title=dict(text=title, x=0.5) if title else None,
+        title=dict(text=title, x=0.5, font=dict(size=20)) if title else None,
         yaxis=dict(
-            title="Share of lines of code (%)" if normalize else "Lines of code",
-            range=[0, 100] if normalize else None
+            title="Share of LoC (%)" if normalize else "Lines of Code",
+            range=[0, 100.1] if normalize else None,
+            gridcolor='rgba(128,128,128,0.2)'
         ),
-        xaxis=dict(title="Date"),
+        xaxis=dict(title="Date", gridcolor='rgba(128,128,128,0.2)'),
         hovermode="x unified",
-        margin=dict(l=20, r=20, t=50, b=20),
+        margin=dict(l=20, r=20, t=60, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
     )
-    
-
     return fig
 
 def plotly_line_plot(data, max_n=20, normalize=False, title=None):
     ts, y, labels = _process_stack_line_data(data, max_n, normalize)
-
     fig = go.Figure()
 
     for i, label in enumerate(labels):
@@ -102,39 +85,29 @@ def plotly_line_plot(data, max_n=20, normalize=False, title=None):
             y=y[i], 
             mode='lines',
             name=label,
-            line=dict(width=2)
+            line=dict(width=2.5, color=PREMIUM_PALETTE[i % len(PREMIUM_PALETTE)])
         ))
 
     fig.update_layout(
-        title=dict(text=title, x=0.5) if title else None,
+        title=dict(text=title, x=0.5, font=dict(size=20)) if title else None,
         yaxis=dict(
-            title="Share of lines of code (%)" if normalize else "Lines of code",
-            range=[0, 100] if normalize else None
+            title="Share of LoC (%)" if normalize else "Lines of Code",
+            range=[0, 100.1] if normalize else None,
+            gridcolor='rgba(128,128,128,0.2)'
         ),
-        xaxis=dict(title="Date"),
+        xaxis=dict(title="Date", gridcolor='rgba(128,128,128,0.2)'),
         hovermode="x unified",
-        margin=dict(l=20, r=20, t=50, b=20),
+        margin=dict(l=20, r=20, t=60, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
     )
-
-        
     return fig
 
 def plotly_survival_plot(commit_history, exp_fit=False, years=5, title=None):
-    # Logic copied from survival_plot.py
-    # commit_history is {sha: [[ts, count], ...]}
-    
     deltas = collections.defaultdict(lambda: np.zeros(2))
     total_n = 0
     YEAR = 365.25 * 24 * 60 * 60
-    
-    # Process history
-    # Input might be a list of histories if we support multiple inputs, 
-    # but based on app.py we pass a single result["survival"] dict.
-    # However, existing survival_plot took a LIST of filenames.
-    # Let's support the single dict passed from app.py.
-    
-    # The logic in survival_plot.py iterates over input_fns, loads them, and computes `all_deltas`.
-    # Here we assume `commit_history` IS the content of one such file (the dict).
     
     for commit, history in commit_history.items():
         t0, orig_count = history[0]
@@ -145,132 +118,86 @@ def plotly_survival_plot(commit_history, exp_fit=False, years=5, title=None):
             last_count = count
         deltas[history[-1][0] - t0] += (-last_count, -orig_count)
 
-    # Calculate curve
     P = 1.0
-    xs = []
-    ys = []
-    
-    # Sort deltas by time
+    xs, ys = [], []
     sorted_times = sorted(deltas.keys())
-    
-    total_k = total_n # unused?
     
     for t in sorted_times:
         delta_k, delta_n = deltas[t]
         xs.append(t / YEAR)
         ys.append(100.0 * P)
-        
         if total_n > 0:
              P *= 1 + delta_k / total_n
-        
-        # total_k += delta_k
         total_n += delta_n
-        
-        if P < 0.05:
-            break
+        if P < 0.05: break
             
     fig = go.Figure()
-    
-    # Main survival curve
     fig.add_trace(go.Scatter(
         x=xs, y=ys,
         mode='lines',
         name='Survival Rate',
-        line=dict(color='blue')
+        line=dict(color=PREMIUM_PALETTE[0], width=3)
     ))
 
-    # Exponential fit
     if exp_fit:
         try:
             import scipy.optimize
-            
-            # Define loss function for fit
             def fit(k):
-                loss = 0.0
-                # Re-calculate P stream to fit k
-                # Need to iterate again or reuse data?
-                # The original code re-iterates.
-                
-                # Simplified for single dataset:
-                curr_total_n = 0
-                for _, history in commit_history.items():
-                    curr_total_n += history[0][1]
-                
-                P_fit = 1.0
-                curr_total_n_fit = curr_total_n
-                
+                loss, curr_total_n = 0.0, sum(h[0][1] for h in commit_history.values())
+                P_fit, curr_total_n_fit = 1.0, curr_total_n
                 for t in sorted_times:
                     delta_k, delta_n = deltas[t]
                     pred = curr_total_n_fit * math.exp(-k * t / YEAR)
                     loss += (curr_total_n_fit * P_fit - pred) ** 2
-                    if curr_total_n_fit > 0:
-                        P_fit *= 1 + delta_k / curr_total_n_fit
+                    if curr_total_n_fit > 0: P_fit *= 1 + delta_k / curr_total_n_fit
                     curr_total_n_fit += delta_n
                 return loss
-
             k_opt = scipy.optimize.fmin(fit, 0.5, maxiter=50, disp=False)[0]
-            
             ts_fit = np.linspace(0, years, 100)
             ys_fit = [100.0 * math.exp(-k_opt * t) for t in ts_fit]
-            
             half_life = math.log(2) / k_opt
-            
             fig.add_trace(go.Scatter(
                 x=ts_fit, y=ys_fit,
                 mode='lines',
                 name=f"Exp. Fit (Half-life: {half_life:.2f} yrs)",
-                line=dict(color='red', dash='dash')
+                line=dict(color=PREMIUM_PALETTE[10], dash='dash', width=2)
             ))
-            
-        except ImportError:
-            pass # Or warn user
+        except ImportError: pass
 
     fig.update_layout(
         title=dict(text=title, x=0.5) if title else None,
-        yaxis=dict(
-            title="lines still present (%)",
-            range=[0, 100]
-        ),
-        xaxis=dict(
-            title="Years",
-            range=[0, years]
-        ),
+        yaxis=dict(title="Lines still present (%)", range=[0, 105], gridcolor='rgba(128,128,128,0.2)'),
+        xaxis=dict(title="Years", range=[0, years], gridcolor='rgba(128,128,128,0.2)'),
         hovermode="x unified",
         margin=dict(l=20, r=20, t=50, b=20),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
     )
-
-
     return fig
 
 def plotly_bar_plot(data, max_n=20, title=None):
-    ts, y, labels = _process_stack_line_data(data, max_n, normalize=False)
-    
-    # Get latest data point (current state)
+    _, y, labels = _process_stack_line_data(data, max_n, normalize=False)
     latest_values = [row[-1] for row in y]
-    
-    # Sort by value for better bar chart presentation
-    # (Though _process_stack_line_data already does some sorting, we want descending order)
     indices = sorted(range(len(labels)), key=lambda i: latest_values[i], reverse=True)
-    
     sorted_labels = [labels[i] for i in indices]
     sorted_values = [latest_values[i] for i in indices]
     
-    # Generate colors
-    colors = px.colors.qualitative.Plotly
-    if len(sorted_labels) > len(colors):
-        colors = px.colors.qualitative.Dark24
-
     fig = go.Figure(go.Bar(
         x=sorted_labels,
         y=sorted_values,
-        marker_color=[colors[i % len(colors)] for i in range(len(sorted_labels))]
+        marker=dict(
+            color=sorted_values,
+            colorscale=[[i/(len(PREMIUM_PALETTE)-1), c] for i, c in enumerate(PREMIUM_PALETTE)],
+            showscale=False
+        )
     ))
 
     fig.update_layout(
-        title=dict(text=f"{title} (Current Distribution)" if title else "Current Distribution", x=0.5),
-        yaxis=dict(title="Lines of Code"),
+        title=dict(text=f"{title} (Latest)" if title else "Latest Distribution", x=0.5),
+        yaxis=dict(title="Lines of Code", gridcolor='rgba(128,128,128,0.2)'),
         xaxis=dict(title=""),
         margin=dict(l=20, r=20, t=50, b=100),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
     )
-    
     return fig
