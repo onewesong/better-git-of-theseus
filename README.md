@@ -7,7 +7,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/better-git-of-theseus)](https://pypi.org/project/better-git-of-theseus/)
 [![GitHub License](https://img.shields.io/github/license/onewesong/better-git-of-theseus)](https://github.com/onewesong/better-git-of-theseus/blob/master/LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/onewesong/better-git-of-theseus)
-<a href="https://llmapis.com?source=https%3A%2F%2Fgithub.com%2FAmoyLab%2FUnla" target="_blank"><img src="https://llmapis.com/api/badge/AmoyLab/Unla" alt="LLMAPIS" width="20" /></a>
+<a href="https://llmapis.com?source=https%3A%2F%2Fgithub.com%2Fonewesong%2Fbetter-git-of-theseus" target="_blank"><img src="https://llmapis.com/api/badge/onewesong/better-git-of-theseus" alt="LLMAPIS" width="20" /></a>
 
 [中文版](README_zh.md)
 
