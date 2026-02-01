@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="better-git-of-theseus",
-    version="0.4.6",
+    version="0.5.0",
     description="Plot stats on Git repositories with interactive Plotly charts",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,7 +23,8 @@ setup(
         "plotly",
         "streamlit",
         "python-dateutil",
-        "scipy"
+        "scipy",
+        "matplotlib"
     ],
     entry_points={
         "console_scripts": [
