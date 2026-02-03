@@ -12,12 +12,16 @@ def main():
     
     # Run streamlit
     # We pass the repo_path as an argument to the streamlit script
-    subprocess.run([
-        sys.executable, "-m", "streamlit", "run", 
-        app_path, 
-        "--browser.gatherUsageStats", "false",
-        "--", repo_path
-    ])
+    try:
+        subprocess.run([
+            sys.executable, "-m", "streamlit", "run", 
+            app_path, 
+            "--browser.gatherUsageStats", "false",
+            "--", repo_path
+        ])
+    except KeyboardInterrupt:
+        # Exit gracefully on Ctrl+C
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
