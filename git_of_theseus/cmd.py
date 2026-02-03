@@ -15,6 +15,7 @@ def main():
     subprocess.run([
         sys.executable, "-m", "streamlit", "run", 
         app_path, 
+        "--browser.gatherUsageStats", "false",
         "--", repo_path
     ])
 
