@@ -51,7 +51,8 @@ if len(sys.argv) > 1:
     default_repo = sys.argv[1]
 
 repo_path = default_repo
-# Path display removed as per user request
+repo_name = os.path.basename(os.path.abspath(repo_path))
+st.sidebar.markdown(f"**Repo:** {repo_name}")
 
 # Fetch branches for the selectbox
 try:
