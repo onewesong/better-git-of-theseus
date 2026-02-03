@@ -256,6 +256,7 @@ def analyze(
     procs=2,
     quiet=False,
     opt=False,
+    progress_callback=None,
 ):
     use_mailmap = (Path(repo_dir) / ".mailmap").exists()
     repo = git.Repo(repo_dir)
@@ -304,9 +305,11 @@ def analyze(
         )  # repo.git.commit_graph('write --changed-paths') doesn't work for some reason
 
     desc = "{:<55s}".format("Listing all commits")
-    for commit in tqdm(
+    for i, commit in enumerate(tqdm(
         repo.iter_commits(branch), desc=desc, unit=" Commits", **tqdm_args
-    ):
+    )):
+        if progress_callback:
+            progress_callback(0, f"Listing commits: {i}")
         cohort = datetime.datetime.utcfromtimestamp(commit.committed_date).strftime(
             cohortfm
         )
@@ -330,6 +333,8 @@ def analyze(
                 master_commits.append(commit)
                 last_date = commit.committed_date
             bar.update()
+            if progress_callback:
+                progress_callback(0, f"Backtracking branch: {len(master_commits)} commits found")
             if not commit.parents:
                 break
             commit = commit.parents[0]
@@ -388,6 +393,8 @@ def analyze(
                 curve_key_tuples.add(("ext", ext))
                 curve_key_tuples.add(("dir", get_top_dir(entry.path)))
                 bar.update()
+                if progress_callback:
+                    progress_callback(0, f"Discovering entries: {entries_total}")
             master_commits[i] = MiniCommit(
                 commit
             )  # Might have cached the entries, we don't want that
@@ -465,7 +472,9 @@ def analyze(
         **tqdm_args,
     ) as bar:
         cbar = tqdm(master_commits, desc=desc, unit=" Commits", position=0, **tqdm_args)
-        for commit in cbar:
+        for i, commit in enumerate(cbar):
+            if progress_callback:
+                progress_callback(i / len(master_commits), f"Analyzing commit {i+1}/{len(master_commits)}")
             t = datetime.datetime.utcfromtimestamp(commit.committed_date)
             ts.append(t)  # x axis
 

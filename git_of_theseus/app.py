@@ -107,6 +107,9 @@ with st.sidebar.expander("Analysis Parameters"):
 
 @st.cache_data(show_spinner=False)
 def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
+    # This is a dummy wrapper for the cached function
+    # Because we need the callback to update the UI, we can't easily cache the callback-enabled version
+    # However, we can cache the final result.
     return analyze(
         repo_path,
         cohortfm=cohortfm,
@@ -118,20 +121,43 @@ def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
         quiet=True
     )
 
+def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ignore):
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    def progress_callback(progress, text):
+        progress_bar.progress(progress)
+        status_text.text(text)
+    
+    results = analyze(
+        repo_path,
+        cohortfm=cohortfm,
+        interval=interval,
+        ignore=ignore,
+        outdir=None,
+        branch=branch,
+        procs=procs,
+        quiet=True,
+        progress_callback=progress_callback
+    )
+    
+    progress_bar.empty()
+    status_text.empty()
+    return results
+
 # State management for analysis results
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
 if st.sidebar.button("🚀 Run Analysis") or (len(sys.argv) > 1 and st.session_state.analysis_results is None):
-    with st.spinner("Analyzing repository... this may take a while."):
-        try:
-            st.session_state.analysis_results = run_analysis(
-                repo_path, branch, cohortfm, interval, procs, ignore
-            )
-            st.success("Analysis completed!")
-        except Exception as e:
-            st.error(f"Analysis failed: {e}")
-            st.session_state.analysis_results = None
+    try:
+        st.session_state.analysis_results = run_analysis_with_progress(
+            repo_path, branch, cohortfm, interval, procs, ignore
+        )
+        st.success("Analysis completed!")
+    except Exception as e:
+        st.error(f"Analysis failed: {e}")
+        st.session_state.analysis_results = None
 
 # Main View
 if st.session_state.analysis_results:
