@@ -105,8 +105,21 @@ with st.sidebar.expander("Analysis Parameters"):
     ).split(",")
     ignore = [i.strip() for i in ignore if i.strip()]
 
+    only = st.text_area(
+        "Only Include Patterns",
+        help="Glob patterns to include (comma separated). "
+            "If Specified, files must match at least one pattern, e.g.: 'src/**, *.py'"
+    ).split(",")
+    only = [o.strip() for o in only if o.strip()]
+
+    all_filetypes = st.checkbox(
+        "Include All File Types",
+        value=False,
+        help="Analyze every file type. If disabled only the default supported file types are analyzed."
+    )
+
 @st.cache_data(show_spinner=False)
-def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
+def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore, only, all_filetypes):
     # This is a dummy wrapper for the cached function
     # Because we need the callback to update the UI, we can't easily cache the callback-enabled version
     # However, we can cache the final result.
@@ -115,13 +128,15 @@ def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
         cohortfm=cohortfm,
         interval=interval,
         ignore=ignore,
+        only=only,
         outdir=None,
         branch=branch,
+        all_filetypes=all_filetypes,
         procs=procs,
         quiet=True
     )
 
-def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ignore):
+def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ignore, only, all_filetypes):
     progress_bar = st.progress(0)
     status_text = st.empty()
     
@@ -134,8 +149,10 @@ def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ign
         cohortfm=cohortfm,
         interval=interval,
         ignore=ignore,
+        only=only,
         outdir=None,
         branch=branch,
+        all_filetypes=all_filetypes,
         procs=procs,
         quiet=True,
         progress_callback=progress_callback
@@ -152,7 +169,7 @@ if 'analysis_results' not in st.session_state:
 if st.sidebar.button("🚀 Run Analysis") or (len(sys.argv) > 1 and st.session_state.analysis_results is None):
     try:
         st.session_state.analysis_results = run_analysis_with_progress(
-            repo_path, branch, cohortfm, interval, procs, ignore
+            repo_path, branch, cohortfm, interval, procs, ignore, only, all_filetypes
         )
         st.success("Analysis completed!")
     except Exception as e:
