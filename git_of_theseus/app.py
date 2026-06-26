@@ -104,9 +104,14 @@ with st.sidebar.expander("Analysis Parameters"):
         help="Glob patterns to ignore (comma separated), e.g.: 'tests/**, *.md'"
     ).split(",")
     ignore = [i.strip() for i in ignore if i.strip()]
+    recursive = st.checkbox(
+        "递归分析嵌套仓库",
+        value=False,
+        help="发现并分析子目录中的独立 .git 仓库与 submodule，合并为聚合视图。目录维度会带上仓库名前缀以区分。"
+    )
 
 @st.cache_data(show_spinner=False)
-def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
+def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore, recursive=False):
     # This is a dummy wrapper for the cached function
     # Because we need the callback to update the UI, we can't easily cache the callback-enabled version
     # However, we can cache the final result.
@@ -118,17 +123,18 @@ def run_analysis(repo_path, branch, cohortfm, interval, procs, ignore):
         outdir=None,
         branch=branch,
         procs=procs,
-        quiet=True
+        quiet=True,
+        recursive=recursive
     )
 
-def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ignore):
+def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ignore, recursive=False):
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
+
     def progress_callback(progress, text):
         progress_bar.progress(progress)
         status_text.text(text)
-    
+
     results = analyze(
         repo_path,
         cohortfm=cohortfm,
@@ -138,7 +144,8 @@ def run_analysis_with_progress(repo_path, branch, cohortfm, interval, procs, ign
         branch=branch,
         procs=procs,
         quiet=True,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
+        recursive=recursive
     )
     
     progress_bar.empty()
@@ -152,7 +159,7 @@ if 'analysis_results' not in st.session_state:
 if st.sidebar.button("🚀 Run Analysis") or (len(sys.argv) > 1 and st.session_state.analysis_results is None):
     try:
         st.session_state.analysis_results = run_analysis_with_progress(
-            repo_path, branch, cohortfm, interval, procs, ignore
+            repo_path, branch, cohortfm, interval, procs, ignore, recursive
         )
         st.success("Analysis completed!")
     except Exception as e:

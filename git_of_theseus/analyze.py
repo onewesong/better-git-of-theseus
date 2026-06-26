@@ -79,6 +79,99 @@ def get_top_dir(path):
     )  # Git/GitPython on Windows also returns paths with '/'s
 
 
+def discover_repos(root_dir):
+    """Recursively discover all nested git repositories under ``root_dir``.
+
+    A directory is considered a repository if it contains a ``.git`` entry.
+    ``.git`` is a directory for normal/independent repos (and the root) and a
+    file for submodules / linked worktrees, so checking existence covers both.
+    The root itself is included if it is a repository. Returns a de-duplicated,
+    sorted list of absolute paths.
+    """
+    root = os.path.abspath(root_dir)
+    repos = []
+    seen = set()
+    for dirpath, dirnames, filenames in os.walk(root):
+        if os.path.exists(os.path.join(dirpath, ".git")):
+            real = os.path.realpath(dirpath)
+            if real not in seen:
+                seen.add(real)
+                repos.append(dirpath)
+        # Never descend into the .git internals, but keep walking the worktree
+        # so deeper nested repositories (submodules, vendored repos) are found.
+        if ".git" in dirnames:
+            dirnames.remove(".git")
+    return sorted(repos)
+
+
+def _resample(repo_ts, yseries, target_ts):
+    """Resample a step-function curve onto ``target_ts`` via forward-fill.
+
+    ``repo_ts`` is the (ascending) list of ISO timestamps for this curve and
+    ``yseries`` the matching values. For every timestamp in ``target_ts`` we
+    carry forward the most recent value whose time is ``<= t``; timestamps
+    before the repo's first sample are filled with 0. Returns a list with the
+    same length as ``target_ts``.
+    """
+    result = []
+    j = 0
+    cur = 0
+    n = len(repo_ts)
+    for t in target_ts:
+        while j < n and repo_ts[j] <= t:
+            cur = yseries[j]
+            j += 1
+        result.append(cur)
+    return result
+
+
+def merge_results(named_results):
+    """Merge per-repository analyze() results into one aggregated view.
+
+    ``named_results`` is a list of ``(display_name, result_dict)``. Curves from
+    every repo are resampled onto the union of all timestamps and summed per
+    label. Only the ``dirs`` dimension gets a ``"<display_name>/<topdir>"``
+    prefix so identically named top-level directories from different repos stay
+    distinct; other dimensions (cohort year, extension, author, domain) are
+    summed by their shared label. ``survival`` dicts are merged directly since
+    commit SHAs are globally unique.
+    """
+    all_ts = sorted(
+        {t for _, res in named_results for t in res["cohorts"]["ts"]}
+    )
+
+    merged = {}
+    for key in ["cohorts", "exts", "authors", "dirs", "domains"]:
+        label_to_series = {}
+        for display_name, res in named_results:
+            data = res[key]
+            repo_ts = data["ts"]
+            for label, yseries in zip(data["labels"], data["y"]):
+                out_label = (
+                    "{:s}/{:s}".format(display_name, label) if key == "dirs" else label
+                )
+                resampled = _resample(repo_ts, yseries, all_ts)
+                if out_label in label_to_series:
+                    label_to_series[out_label] = [
+                        a + b for a, b in zip(label_to_series[out_label], resampled)
+                    ]
+                else:
+                    label_to_series[out_label] = resampled
+        labels = sorted(label_to_series)
+        merged[key] = {
+            "ts": all_ts,
+            "labels": labels,
+            "y": [label_to_series[label] for label in labels],
+        }
+
+    merged_survival = {}
+    for _, res in named_results:
+        merged_survival.update(res.get("survival", {}))
+    merged["survival"] = merged_survival
+
+    return merged
+
+
 class BlameProc(multiprocessing.Process):
     def __init__(
         self, repo_dir, q, ret_q, run_flag, blame_kwargs, commit2cohort, use_mailmap
@@ -257,7 +350,69 @@ def analyze(
     quiet=False,
     opt=False,
     progress_callback=None,
+    recursive=False,
 ):
+    if recursive:
+        root = os.path.abspath(repo_dir)
+        repos = discover_repos(root)
+        # Only one repo (or none) found: nothing to merge, fall through to the
+        # normal single-repo path below.
+        if len(repos) > 1:
+            if outdir and not os.path.exists(outdir):
+                os.makedirs(outdir)
+            named_results = []
+            for i, repo in enumerate(repos):
+                if repo == root or os.path.samefile(repo, root):
+                    display_name = os.path.basename(root)
+                else:
+                    display_name = os.path.relpath(repo, root)
+                if progress_callback:
+                    progress_callback(
+                        i / len(repos),
+                        "Analyzing repo {:d}/{:d}: {:s}".format(
+                            i + 1, len(repos), display_name
+                        ),
+                    )
+                if not quiet:
+                    print(
+                        "\nAnalyzing nested repo {:d}/{:d}: {:s}".format(
+                            i + 1, len(repos), display_name
+                        )
+                    )
+                res = analyze(
+                    repo,
+                    cohortfm=cohortfm,
+                    interval=interval,
+                    ignore=ignore,
+                    only=only,
+                    outdir=None,
+                    branch=branch,
+                    all_filetypes=all_filetypes,
+                    ignore_whitespace=ignore_whitespace,
+                    procs=procs,
+                    quiet=quiet,
+                    opt=opt,
+                    recursive=False,
+                )
+                named_results.append((display_name, res))
+
+            merged = merge_results(named_results)
+
+            if outdir:
+                for key in ["cohorts", "exts", "authors", "dirs", "domains"]:
+                    fn = os.path.join(outdir, f"{key}.json")
+                    if not quiet:
+                        print("Writing data to %s" % fn)
+                    with open(fn, "w") as f:
+                        json.dump(merged[key], f)
+                fn = os.path.join(outdir, "survival.json")
+                if not quiet:
+                    print("Writing survival data to %s" % fn)
+                with open(fn, "w") as f:
+                    json.dump(merged["survival"], f)
+
+            return merged
+
     use_mailmap = (Path(repo_dir) / ".mailmap").exists()
     repo = git.Repo(repo_dir)
     blame_kwargs = {}
@@ -636,6 +791,11 @@ def analyze_cmdline():
         "--opt",
         action="store_true",
         help="Generates git commit-graph; Improves performance at the cost of some (~80KB/kCommit) disk space (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Recursively discover and analyze nested git repositories (independent .git dirs and submodules), merged into one aggregated view (default: %(default)s)",
     )
     parser.add_argument("repo_dir")
     kwargs = vars(parser.parse_args())
