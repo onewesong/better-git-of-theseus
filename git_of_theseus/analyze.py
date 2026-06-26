@@ -172,6 +172,33 @@ def merge_results(named_results):
     return merged
 
 
+def merge_authors(authors_data, mapping):
+    """Merge author curves according to ``mapping`` (alias -> canonical name).
+
+    Post-processing helper: collapse several author ids that belong to the same
+    person into one curve, working on an already-computed ``authors`` result so
+    no re-analysis is needed. ``authors_data`` is the standard
+    ``{"y", "ts", "labels"}`` structure. Authors absent from ``mapping`` keep
+    their own name. Returns a new dict; ``ts`` is unchanged.
+    """
+    ts = authors_data["ts"]
+    label_to_series = {}
+    for label, series in zip(authors_data["labels"], authors_data["y"]):
+        canonical = mapping.get(label, label)
+        if canonical in label_to_series:
+            label_to_series[canonical] = [
+                a + b for a, b in zip(label_to_series[canonical], series)
+            ]
+        else:
+            label_to_series[canonical] = list(series)
+    labels = sorted(label_to_series)
+    return {
+        "ts": ts,
+        "labels": labels,
+        "y": [label_to_series[label] for label in labels],
+    }
+
+
 class BlameProc(multiprocessing.Process):
     def __init__(
         self, repo_dir, q, ret_q, run_flag, blame_kwargs, commit2cohort, use_mailmap

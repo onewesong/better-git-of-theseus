@@ -2,12 +2,37 @@ import streamlit as st
 import os
 import tempfile
 import shutil
+import pandas as pd
 try:
-    from git_of_theseus.analyze import analyze
+    from git_of_theseus.analyze import analyze, merge_authors
     from git_of_theseus.plotly_plots import plotly_stack_plot, plotly_line_plot, plotly_survival_plot, plotly_bar_plot
 except ImportError:
-    from analyze import analyze
+    from analyze import analyze, merge_authors
     from plotly_plots import plotly_stack_plot, plotly_line_plot, plotly_survival_plot, plotly_bar_plot
+
+
+def build_author_mapping(editor_df, keep_label):
+    """Build an {alias: canonical} mapping from the grouping table.
+
+    Each row pairs an author with the author it should be merged into. Rows left
+    at ``keep_label`` (or pointing at themselves) are ignored. Chains are
+    resolved transitively (a -> b -> c collapses to a -> c).
+    """
+    raw = {}
+    for _, row in editor_df.iterrows():
+        author = row["Author"]
+        target = row["Merge into"]
+        if target and target != keep_label and target != author:
+            raw[author] = target
+
+    def resolve(name):
+        seen = set()
+        while name in raw and raw[name] != name and name not in seen:
+            seen.add(name)
+            name = raw[name]
+        return name
+
+    return {author: resolve(author) for author in raw}
 
 st.set_page_config(page_title="Git of Theseus Dash", layout="wide")
 
@@ -105,9 +130,9 @@ with st.sidebar.expander("Analysis Parameters"):
     ).split(",")
     ignore = [i.strip() for i in ignore if i.strip()]
     recursive = st.checkbox(
-        "递归分析嵌套仓库",
+        "Analyze nested repositories",
         value=False,
-        help="发现并分析子目录中的独立 .git 仓库与 submodule，合并为聚合视图。目录维度会带上仓库名前缀以区分。"
+        help="Discover and analyze independent .git repos and submodules under the path, merged into one aggregated view. The 'Directories' dimension is prefixed with the repo name to keep them distinct."
     )
 
 @st.cache_data(show_spinner=False)
@@ -169,6 +194,45 @@ if st.sidebar.button("🚀 Run Analysis") or (len(sys.argv) > 1 and st.session_s
 # Main View
 if st.session_state.analysis_results:
     results = st.session_state.analysis_results
+
+    # Post-analysis author merging: collapse multiple ids of the same person
+    # without re-running the (expensive) analysis.
+    KEEP_LABEL = "— keep separate —"
+    author_mapping = {}
+    with st.expander("👥 Author Merge", expanded=False):
+        st.caption(
+            "The same person sometimes commits under multiple author ids. "
+            "For each author, pick which author it should be merged into — "
+            "**no re-analysis needed**. Leave as \"keep separate\" to keep it on its own."
+        )
+        available_authors = results.get("authors", {}).get("labels", [])
+        if available_authors:
+            options = [KEEP_LABEL] + available_authors
+            editor_df = st.data_editor(
+                pd.DataFrame(
+                    {"Author": available_authors, "Merge into": [KEEP_LABEL] * len(available_authors)}
+                ),
+                column_config={
+                    "Author": st.column_config.TextColumn("Author", disabled=True),
+                    "Merge into": st.column_config.SelectboxColumn(
+                        "Merge into", options=options, required=True
+                    ),
+                },
+                hide_index=True,
+                width="stretch",
+                key="author_merge_editor",
+            )
+            author_mapping = build_author_mapping(editor_df, KEEP_LABEL)
+        else:
+            st.caption("No author data available.")
+
+    if author_mapping and results.get("authors"):
+        results = dict(results)  # shallow copy so session_state stays pristine
+        results["authors"] = merge_authors(results["authors"], author_mapping)
+        st.success("Authors merged: {:d} ids → {:d} authors".format(
+            len(author_mapping), len(results["authors"]["labels"])
+        ))
+
     tab1, tab2, tab3, tab4 = st.tabs(["Stack Plot", "Line Plot", "Distribution", "Survival Plot"])
 
     with tab1:
@@ -191,7 +255,7 @@ if st.session_state.analysis_results:
             data = results.get(data_key)
             if data:
                 fig = plotly_stack_plot(data, normalize=normalize, max_n=max_n, title=project_name)
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning(f"Data for {data_source_label} not found.")
 
@@ -208,7 +272,7 @@ if st.session_state.analysis_results:
             data_line = results.get(data_key_line)
             if data_line:
                 fig = plotly_line_plot(data_line, normalize=normalize_line, max_n=max_n_line, title=project_name)
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning(f"Data for {data_source_label_line} not found.")
 
@@ -224,7 +288,7 @@ if st.session_state.analysis_results:
             data_bar = results.get(data_key_bar)
             if data_bar:
                 fig = plotly_bar_plot(data_bar, max_n=max_n_bar, title=f"{project_name} - {data_source_label_bar}")
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning(f"Data for {data_source_label_bar} not found.")
 
@@ -239,7 +303,7 @@ if st.session_state.analysis_results:
             survival_data = results.get("survival")
             if survival_data:
                 fig = plotly_survival_plot(survival_data, exp_fit=exp_fit, years=years, title=project_name)
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("Survival data not found.")
 
