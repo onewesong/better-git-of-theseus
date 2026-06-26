@@ -1,0 +1,7 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+# Version is derived automatically from the latest git tag (e.g. tag v0.7.0 -> 0.7.0).
+# No need to edit any file when releasing — just push a tag.
+[tool.setuptools_scm]

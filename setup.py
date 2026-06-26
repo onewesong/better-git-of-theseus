@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="better-git-of-theseus",
-    version="0.6.0",
+    # version is managed by setuptools-scm (derived from git tags) — see pyproject.toml
     description="Plot stats on Git repositories with interactive Plotly charts",
     long_description=long_description,
     long_description_content_type="text/markdown",
